@@ -12,10 +12,10 @@ from blake3 import blake3
 # =========================
 
 #Source Path 相机目录
-SRC = Path(r"E:\DCIM\DJI_001")
+SRC = Path(r"在此填写你的相机目录")
 
 #Destination Path 转存目录
-DST = Path(r"D:\camera output\unprocessed")
+DST = Path(r"在此填写目标目录")
 
 BUF_SIZE = 8 * 1024 * 1024  # 8MB
 
