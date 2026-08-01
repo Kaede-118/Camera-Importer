@@ -1,4 +1,5 @@
 
+from datetime import datetime
 import shutil
 import sys
 import atexit
@@ -11,11 +12,76 @@ from blake3 import blake3
 # 配置
 # =========================
 
+# 当前脚本目录
+BASE_DIR = Path(__file__).parent
+
+CONFIG_FILE = BASE_DIR / "config.txt"
+
+
+def load_config():
+
+    # 不存在则创建模板
+    if not CONFIG_FILE.exists():
+
+        CONFIG_FILE.write_text(
+            """# 相机源目录
+SRC=
+
+# 转存目标目录
+DST=
+""",
+            encoding="utf-8"
+        )
+
+        print("首次运行，已创建 config.txt")
+        print("请填写 SRC 和 DST 后重新运行")
+
+        input("\n按回车退出...")
+        sys.exit(0)
+
+
+    config = {}
+
+    with open(CONFIG_FILE, "r", encoding="utf-8") as f:
+
+        for line in f:
+
+            line = line.strip()
+
+            # 跳过注释和空行
+            if not line or line.startswith("#"):
+                continue
+
+            if "=" in line:
+
+                key, value = line.split("=", 1)
+
+                config[key.strip()] = value.strip()
+
+
+    return config
+
+
+
+config = load_config()
+
+
+if not config.get("SRC") or not config.get("DST"):
+
+    print("config.txt 配置不完整")
+    print("请填写 SRC 和 DST")
+
+    input("\n按回车退出...")
+    sys.exit(1)
+
+
+
 #Source Path 相机目录
-SRC = Path(r"在此填写你的相机目录")
+SRC = Path(config["SRC"])
 
 #Destination Path 转存目录
-DST = Path(r"在此填写目标目录")
+DST = Path(config["DST"])
+
 
 BUF_SIZE = 8 * 1024 * 1024  # 8MB
 
@@ -189,11 +255,10 @@ try:
 
     fail_count = 0
     failed_files = []
-
+    print(f"处理开始时间: {datetime.now():%Y-%m-%d %H:%M:%S}")
     print("\n=====================================")
     print("开始处理 MP4 文件")
     print("=====================================")
-
     # =========================
     # 遍历文件
     # =========================
@@ -247,12 +312,12 @@ try:
         )
         try:
 
-            tqdm.write(f"复制文件: {f.name}")
+            tqdm.write(f"复制文件: {f.name},{datetime.now():%Y-%m-%d %H:%M:%S}")
 
             # 边复制边计算源hash
             src_hash = copy_with_hash(f, dst_file)
 
-            tqdm.write("复制完成，开始校验目标文件...")
+            tqdm.write(f"复制完成，开始校验目标文件...{datetime.now():%Y-%m-%d %H:%M:%S}")
 
             # 只读取目标文件一次
             dst_hash = calc_blake3(dst_file)
@@ -264,7 +329,7 @@ try:
             if src_hash == dst_hash:
 
                 tqdm.write(
-                    f"校验成功，删除源文件: {f.name}"
+                    f"校验成功，删除源文件: {f.name}，{datetime.now():%Y-%m-%d %H:%M:%S}"
                 )
 
                 f.unlink()
@@ -276,7 +341,7 @@ try:
             else:
 
                 tqdm.write(
-                    f"校验失败，保留源文件和tmp: {f.name}"
+                    f"校验失败，保留源文件和tmp: {f.name}，{datetime.now():%Y-%m-%d %H:%M:%S}"
                 )
 
                 fail_count += 1
@@ -292,7 +357,7 @@ try:
 
         except Exception as e:
 
-            tqdm.write(f"处理失败: {f.name}")
+            tqdm.write(f"处理失败: {f.name}，{datetime.now():%Y-%m-%d %H:%M:%S}")
             tqdm.write(str(e))
 
             fail_count += 1
@@ -311,7 +376,7 @@ try:
     # =========================
 
     print("\n=====================================")
-    print("全部完成")
+    print(f"全部完成，{datetime.now():%Y-%m-%d %H:%M:%S}")
     print(f"失败数量: {fail_count}")
 
     if failed_files:
@@ -329,7 +394,7 @@ try:
 
 except Exception as e:
 
-    print("\n程序发生未处理异常")
+    print(f"\n程序发生未处理异常,{datetime.now():%Y-%m-%d %H:%M:%S}")
     print(e)
 
 # =========================
