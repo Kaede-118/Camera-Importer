@@ -1,4 +1,5 @@
-# Camera-Importer
+
+# Camera Importer
 
 一个用于安全转存相机视频的 Python 工具。
 
@@ -15,7 +16,6 @@
 * 自动清理未完成转存
 * 自动处理重名文件
 * 校验成功后才删除源文件
-* 外部 `config.txt` 配置路径
 * `tqdm` 进度条显示
 
 ---
@@ -24,8 +24,6 @@
 
 ```text
 相机存储卡
-    ↓
-读取配置文件
     ↓
 复制文件
     ↓
@@ -65,42 +63,26 @@
 
 ## 配置
 
-程序首次运行时，会自动在脚本同目录创建：
+修改脚本顶部的路径：
 
-```text
-config.txt
+```python
+SRC = Path(r"")
+DST = Path(r"")
 ```
-
-默认内容：
-
-```txt
-# 相机源目录
-SRC=
-
-# 转存目标目录
-DST=
-```
-
-填写对应路径：
 
 示例：
 
-```txt
-# 相机源目录
-SRC=E:\DCIM\DJI_001
-
-# 转存目标目录
-DST=D:\camera output\unprocessed
+```python
+SRC = Path(r"E:\DCIM\DJI_001")
+DST = Path(r"D:\camera output\unprocessed")
 ```
-
-保存后重新运行即可。
 
 ---
 
 ## 依赖
 
 ```bash
-pip install tqdm blake3
+pip install tqdm blake3 winotify
 ```
 
 ---
@@ -119,13 +101,7 @@ python CameraImporter.py
 
 ### 运行锁
 
-程序启动时创建：
-
-```text
-running.lock
-```
-
-用于防止多个实例同时运行，避免重复转存导致数据冲突。
+防止多个实例同时运行。
 
 ---
 
@@ -137,37 +113,15 @@ running.lock
 DJI_0001.MP4.tmp
 ```
 
-如果程序异常退出：
-
-下一次启动时会自动检测并清理未完成文件。
+程序异常退出时，下一次启动会自动检测并清理未完成文件。
 
 ---
 
-### BLAKE3 哈希校验
+### 哈希校验
 
 源文件与目标文件分别计算 BLAKE3 哈希。
 
-只有：
-
-```text
-源文件 Hash == 目标文件 Hash
-```
-
-时才会删除源文件。
-
----
-
-### 重名处理
-
-如果目标目录存在同名文件：
-
-自动生成：
-
-```text
-DJI_0001 (2).MP4
-```
-
-避免覆盖已有文件。
+只有完全一致时才会删除源文件。
 
 ---
 
@@ -175,25 +129,27 @@ DJI_0001 (2).MP4
 
 MIT License
 
-# Camera-Importer
 
-A Python tool for safely importing camera footage.
 
-Originally created for a DJI Action 4 POV recording workflow, but it can also be used for safely transferring videos from other cameras or storage devices.
+
+# Camera Importer
+
+A simple Python tool for safely importing camera footage.
+
+Originally created for a DJI Action 4 POV workflow, but it can be used with any directory containing video files.
 
 ---
 
 ## Features
 
-* Single-instance execution lock
+* Single-instance lock protection
 * Automatic removal of DJI `.LRF` files
 * BLAKE3 hash verification
-* Temporary `.tmp` file protection
-* Automatic cleanup of incomplete transfers
+* Temporary file (`.tmp`) protection
+* Automatic cleanup of unfinished transfers
 * Automatic duplicate filename handling
-* Delete source files only after successful verification
-* External path configuration through `config.txt`
-* Progress display with `tqdm`
+* Source file deletion only after successful verification
+* Progress bars using `tqdm`
 
 ---
 
@@ -201,15 +157,13 @@ Originally created for a DJI Action 4 POV recording workflow, but it can also be
 
 ```text
 Camera Storage
-        ↓
-Read Configuration
-        ↓
+      ↓
 Copy File
-        ↓
-Calculate & Verify BLAKE3 Hash
-        ↓
-Verification Successful
-        ↓
+      ↓
+BLAKE3 Verification
+      ↓
+Verification Success
+      ↓
 Delete Source File
 ```
 
@@ -225,70 +179,48 @@ Report Error
 
 ## Why?
 
-During a previous video transfer, a design flaw caused the original file to be deleted before the copy process was fully verified, resulting in the loss of a POV recording.
+After losing a POV recording due to an interrupted transfer, I decided to redesign the workflow with verification and recovery mechanisms.
 
-After that incident, the entire transfer workflow was redesigned with:
+The following protections were added:
 
 * Hash verification
 * Temporary file markers
 * Automatic recovery
-* Single-instance protection
+* Single-instance lock
 
-The core principle is simple:
+The design goal is simple:
 
-> Never delete the original file before confirming that the copied file is valid.
+> Never delete the original file unless the copied file has been verified.
 
 ---
 
 ## Configuration
 
-On the first run, the program automatically creates:
+Edit the paths at the top of the script:
 
-```text
-config.txt
+```python
+SRC = Path(r"")
+DST = Path(r"")
 ```
-
-in the same directory as the script.
-
-Default content:
-
-```txt
-# Camera source directory
-SRC=
-
-# Transfer destination directory
-DST=
-```
-
-Fill in your own paths:
 
 Example:
 
-```txt
-# Camera source directory
-SRC=E:\DCIM\DJI_001
-
-# Transfer destination directory
-DST=D:\camera output\unprocessed
+```python
+SRC = Path(r"E:\DCIM\DJI_001")
+DST = Path(r"D:\camera output\unprocessed")
 ```
-
-Save the file and run the program again.
 
 ---
 
 ## Requirements
 
-Install dependencies:
-
 ```bash
-pip install tqdm blake3
+pip install tqdm blake3 winotify
 ```
 
 ---
 
 ## Usage
-
-Run:
 
 ```bash
 python CameraImporter.py
@@ -302,53 +234,156 @@ Or simply double-click the script if Python is associated with `.py` files.
 
 ### Lock File
 
-When the program starts, it creates:
-
-```text
-running.lock
-```
-
-This prevents multiple instances from running at the same time and avoids duplicate transfers.
+Prevents multiple instances from running simultaneously.
 
 ---
 
-### Temporary File Marker
+### Temporary Marker
 
-When a transfer starts, a temporary marker is created:
+Created when a transfer starts:
 
 ```text
 DJI_0001.MP4.tmp
 ```
 
-If the program exits unexpectedly, unfinished transfers will be detected and cleaned up during the next run.
+If the program exits unexpectedly, unfinished files will be detected and cleaned up during the next run.
 
 ---
 
-### BLAKE3 Hash Verification
+### Hash Verification
 
-Both source and destination files are calculated using BLAKE3.
+Both source and destination files are verified using BLAKE3 hashes.
 
-The source file will only be deleted when:
-
-```text
-Source Hash == Destination Hash
-```
-
-This ensures that the transferred file is identical to the original.
+The source file is deleted only when the hashes match.
 
 ---
 
-### Duplicate Filename Handling
+## License
 
-If a file with the same name already exists in the destination directory:
+MIT License
+# Camera Importer
 
-The program automatically creates a new filename:
+A simple Python tool for safely importing camera footage.
+
+Originally created for a DJI Action 4 POV workflow, but it can be used with any directory containing video files.
+
+---
+
+## Features
+
+* Single-instance lock protection
+* Automatic removal of DJI `.LRF` files
+* BLAKE3 hash verification
+* Temporary file (`.tmp`) protection
+* Automatic cleanup of unfinished transfers
+* Automatic duplicate filename handling
+* Source file deletion only after successful verification
+* Progress bars using `tqdm`
+
+---
+
+## Workflow
 
 ```text
-DJI_0001 (2).MP4
+Camera Storage
+      ↓
+Copy File
+      ↓
+BLAKE3 Verification
+      ↓
+Verification Success
+      ↓
+Delete Source File
 ```
 
-Existing files will never be overwritten.
+If verification fails:
+
+```text
+Keep Source File
+Keep Temporary Marker
+Report Error
+```
+
+---
+
+## Why?
+
+After losing a POV recording due to an interrupted transfer, I decided to redesign the workflow with verification and recovery mechanisms.
+
+The following protections were added:
+
+* Hash verification
+* Temporary file markers
+* Automatic recovery
+* Single-instance lock
+
+The design goal is simple:
+
+> Never delete the original file unless the copied file has been verified.
+
+---
+
+## Configuration
+
+Edit the paths at the top of the script:
+
+```python
+SRC = Path(r"")
+DST = Path(r"")
+```
+
+Example:
+
+```python
+SRC = Path(r"E:\DCIM\DJI_001")
+DST = Path(r"D:\camera output\unprocessed")
+```
+
+---
+
+## Requirements
+
+```bash
+pip install tqdm blake3 winotify
+```
+
+---
+
+## Usage
+
+```bash
+python CameraImporter.py
+```
+
+Or simply double-click the script if Python is associated with `.py` files.
+
+---
+
+## Safety Features
+
+### Lock File
+
+Prevents multiple instances from running simultaneously.
+
+---
+
+### Temporary Marker
+
+Created when a transfer starts:
+
+```text
+DJI_0001.MP4.tmp
+```
+
+If the program exits unexpectedly, unfinished files will be detected and cleaned up during the next run.
+
+---
+
+### Hash Verification
+
+Both source and destination files are verified using BLAKE3 hashes.
+
+The source file is deleted only when the hashes match.
 
 ---
 
