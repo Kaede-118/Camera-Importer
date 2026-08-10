@@ -31,3 +31,6 @@ config.txt
 *.bat
 ignore/
 devnotes/
+
+# Chat exports
+chatlog/

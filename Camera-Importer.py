@@ -277,11 +277,17 @@ try:
 
     if LOCKFILE.exists():
 
-        print("另一个实例正在运行，退出")
+        # 锁文件存在:可能是另一实例正在运行,也可能是上次异常退出残留
+        # 输入 1 确认强制接管(继续使用旧锁),其他输入则退出
+        print("检测到 running.lock(另一实例运行中或上次异常残留)")
 
-        input("\n按回车退出...")
+        answer = input("输入 1 确认强制开始,其他任意键退出: ")
 
-        sys.exit(1)
+        if answer.strip() != "1":
+
+            input("\n按回车退出...")
+
+            sys.exit(1)
 
 
     LOCKFILE.touch()
