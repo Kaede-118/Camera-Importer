@@ -198,7 +198,10 @@ def calc_blake3(file_path):
 # =========================
 
 
-def copy_with_hash(src, dst):
+def copy_with_hash(src, dst, pbar_total=None):
+    # src: 源文件路径；dst: 目标文件路径
+    # pbar_total: 可选参数，传入总进度条后每复制一块同步累计，实现总进度实时刷新
+    # 返回值: 源文件内容的 BLAKE3 哈希（十六进制字符串）
 
     src_hash = blake3()
 
@@ -226,6 +229,10 @@ def copy_with_hash(src, dst):
                 src_hash.update(chunk)
 
                 pbar.update(len(chunk))
+
+                # 同步累计总进度条，让总进度实时推进
+                if pbar_total is not None:
+                    pbar_total.update(len(chunk))
 
 
     shutil.copystat(src, dst)
@@ -424,6 +431,7 @@ try:
         unit_scale=True,
         unit_divisor=1024,
         desc="总进度",
+        leave=True,
     )
 
     ema_speed = None  # 动态速度，首个文件完成后初始化
@@ -489,12 +497,13 @@ try:
 
             src_hash = copy_with_hash(
                 f,
-                dst_file
+                dst_file,
+                pbar
             )
 
 
             tqdm.write(
-                f"复制完成，开始校验目标文件..."
+                f"复制完成，开始校验目标文件...,{datetime.now():%Y-%m-%d %H:%M:%S}"
             )
 
 
@@ -508,11 +517,8 @@ try:
 
 
                 tqdm.write(
-                    f"校验成功，删除源文件: {f.name}"
+                    f"校验成功，删除源文件: {f.name},{datetime.now():%Y-%m-%d %H:%M:%S}"
                 )
-
-
-                f.unlink()
 
 
                 tmp_file.unlink(
@@ -520,11 +526,15 @@ try:
                 )
 
 
+                # 先删 tmp 再删源：避免中断时残留的 tmp 触发清理逻辑误删完整文件
+                f.unlink()
+
+
             else:
 
 
                 tqdm.write(
-                    f"校验失败，保留源文件和tmp: {f.name}"
+                    f"校验失败，保留源文件和tmp: {f.name},{datetime.now():%Y-%m-%d %H:%M:%S}"
                 )
 
 
@@ -543,7 +553,7 @@ try:
 
 
             tqdm.write(
-                f"处理失败: {f.name}"
+                f"处理失败: {f.name},{datetime.now():%Y-%m-%d %H:%M:%S}"
             )
 
             tqdm.write(
@@ -562,7 +572,7 @@ try:
             )
 
 
-        pbar.update(file_size)
+        # 总进度已在 copy_with_hash 内按块实时累计，这里不再重复 update
 
         # 动态速度估算（EMA），按剩余字节 ÷ 当前速度计算 ETA
         elapsed = time.monotonic() - file_start
@@ -615,6 +625,12 @@ try:
 
     ok_count = len(files_to_process) - fail_count
     notify_done(ok_count, fail_count, failed_files)
+
+    try:
+        input("\n按回车退出...")
+    except EOFError:
+        # stdin 不可交互（如被批处理管道调用）时自动退出，不打断链式流程
+        pass
 
 
 
